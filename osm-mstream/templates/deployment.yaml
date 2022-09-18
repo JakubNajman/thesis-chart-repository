@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osm-mstream
+  labels:
+    app: osm-mstream
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: osm-mstream
+  template:
+    metadata:
+        labels:
+          name: osm-mstream
+    spec:
+        containers:
+          - name: mstream
+            image: "linuxserver/mstream:latest"
+            imagePullPolicy: IfNotPresent
+            ports:
+              - name: app
+                containerPort: 3000
+                protocol: TCP
+            livenessProbe:
+              httpGet:
+                path: /
+                port: app
+            readinessProbe:
+              httpGet:
+                path: /
+                port: app
+          - name: rp
+            image: "nginx:latest"
+            imagePullPolicy: IfNotPresent
+            ports:
+              - name: http
+                containerPort: 80
+                protocol: TCP
+              - name: ssh
+                containerPort: 22
+                protocol: TCP
+            livenessProbe: 
+              httpGet:
+                path: /
+                port: http
+            readinessProbe:
+              httpGet:
+                path: /
+                port: http
+            volumeMounts:
+            - name: osm-mstream-nginx-cm-vol
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+        volumes:
+          - configMap:
+              name: osm-mstream-nginx-cm
+              items:
+              - key: nginx.conf
+                path: nginx.conf
+            name: osm-mstream-nginx-cm-vol
